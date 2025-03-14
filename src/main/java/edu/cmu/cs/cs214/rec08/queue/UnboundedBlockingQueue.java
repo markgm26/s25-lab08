@@ -16,20 +16,29 @@ public class UnboundedBlockingQueue<E> implements SimpleQueue<E> {
 
     public UnboundedBlockingQueue() { }
 
-    public boolean isEmpty() { return queue.isEmpty(); }
+    public synchronized boolean isEmpty() { return queue.isEmpty(); }
 
-    public int size() { return queue.size(); }
+    public synchronized int size() { return queue.size(); }
 
-    public E peek() { return queue.peek(); }
+    public synchronized E peek() { return queue.peek(); }
 
-    public void enqueue(E element) { queue.add(element); }
+    //blocks on this because of synchronized keyword, notifies all threads waiting on this after adding element
+    public synchronized void enqueue(E element) {
+        queue.add(element);
+        notifyAll();
+    }
 
-    /**
-     * TODO:  Change this method to block (waiting for an enqueue) rather
-     * than throw an exception.  Completing this task may require
-     * modifying other methods.
-     */
-    public E dequeue() { return queue.remove(); }
+    //blocks on this because of synchronized keyword, waits for queue to be non-empty
+    public synchronized E dequeue() {
+        while (queue.isEmpty()) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return queue.remove();
+    }
 
     public String toString() { return queue.toString(); }
 }
