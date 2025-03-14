@@ -54,18 +54,19 @@ public class SimpleHashMap<K, V> {
     public V put(K key, V value) {
         if (key == null)
             throw new NullPointerException("Key can't be null.");
-
         List<Entry<K,V>> bucket = table.get(hash(key));
-        for (Entry<K, V> e : bucket) {
-            if (e.key.equals(key)) {
-                V result = e.value;
-                e.value = value;
-                return result;
+        //synchronize on the bucket, since this is what we need to mutate. Other buckets should be unlocked.
+        synchronized (bucket) {
+            for (Entry<K, V> e : bucket) {
+                if (e.key.equals(key)) {
+                    V result = e.value;
+                    e.value = value;
+                    return result;
+                }
             }
+            bucket.add(new Entry<>(key, value));
+            return null;
         }
-
-        bucket.add(new Entry<>(key, value));
-        return null;
     }
 
     /**
@@ -76,12 +77,15 @@ public class SimpleHashMap<K, V> {
      */
     public V get(K key) {
         List<Entry<K,V>> bucket = table.get(hash(key));
-        for (Entry<K, V> e : bucket) {
-            if (e.key.equals(key)) {
-                return e.value;
+        //synchronize on the bucket, since we are reading from it. Other buckets should be unlocked.
+        synchronized (bucket) {
+            for (Entry<K, V> e : bucket) {
+                if (e.key.equals(key)) {
+                    return e.value;
+                }
             }
+            return null;
         }
-        return null;
     }
 
     /**
